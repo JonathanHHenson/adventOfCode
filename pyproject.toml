@@ -5,6 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = 'advent-of-code'
 version = '2023.1.0'
+readme = 'docs/README.md'
 dependencies = []
 
 [project.optional-dependencies]
