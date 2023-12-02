@@ -7,7 +7,7 @@ ALPHA_DIGITS_LOOKUP = {
     **{digit: str(i + 1) for i, digit in enumerate(ALPHA_DIGITS)}
 }
 
-BASIC_CALIBRATION_REGEX = re.compile(r'(\d)')
+BASIC_CALIBRATION_REGEX = re.compile(r'\d')
 ADVANCED_CALIBRATION_REGEX = re.compile(rf'(?=(\d|{'|'.join(ALPHA_DIGITS)}))')
 
 
@@ -21,11 +21,10 @@ def get_calibration_values(filename: str, *, advanced: bool = False) -> Iterable
 
 def get_calibration_value(line: str, *, advanced: bool = False) -> int:
     if advanced:
-        calibration_regex = ADVANCED_CALIBRATION_REGEX
+        digits = [m.group(1) for m in ADVANCED_CALIBRATION_REGEX.finditer(line)]
     else:
-        calibration_regex = BASIC_CALIBRATION_REGEX
+        digits = BASIC_CALIBRATION_REGEX.findall(line)
 
-    digits = [m.group(1) for m in calibration_regex.finditer(line)]
     return int(ALPHA_DIGITS_LOOKUP[digits[0]] + ALPHA_DIGITS_LOOKUP[digits[-1]])
 
 
