@@ -10,13 +10,13 @@ game_records_grammar = '''
 start: game
 
 game: "Game" id ":" moves
-id: NUMBER
+id: INT
 moves: move (";" move)*
 move: cube ("," cube)*
-cube: NUMBER WORD
+cube: INT WORD
 
 %import common.WORD
-%import common.NUMBER
+%import common.INT
 %import common.WS
 
 %ignore WS
