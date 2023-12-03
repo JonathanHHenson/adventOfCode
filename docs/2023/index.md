@@ -13,3 +13,4 @@ puzzle is unlocked when you complete the first. Each puzzle grants **one star**.
 ## Index
 - [Day 1](day1.md)
 - [Day 2](day2.md)
+- [Day 3](day3.md)
