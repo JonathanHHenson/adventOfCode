@@ -1,6 +1,9 @@
-from typing import Optional, NamedTuple, Iterable
+from typing import Optional
 
 from lark import Lark, Transformer, Token
+
+type SchematicItem = int | str
+type SchematicRow = list[Optional[SchematicItem]]
 
 engine_grid_grammar = r'''
 start: row+
@@ -17,9 +20,6 @@ _NL   : NEWLINE
 %import common.INT
 %import common.NEWLINE
 '''
-
-type SchematicItem = int | str
-type SchematicRow = list[Optional[SchematicItem]]
 
 
 class TreeToSchematic(Transformer):
