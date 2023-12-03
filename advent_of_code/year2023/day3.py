@@ -1,4 +1,4 @@
-from typing import Optional, NamedTuple
+from typing import Optional, NamedTuple, Iterable
 
 from lark import Lark, Transformer, Token
 
@@ -6,8 +6,8 @@ engine_grid_grammar = r'''
 start: row+
 
 row: item+ _NL
-?item: INT    -> num
-     | SYMBOL -> symbol
+?item: INT    -> number
+     | SYMBOL -> part_symbol
      | EMPTY  -> empty
 
 SYMBOL: /[^0-9\.]/
@@ -18,21 +18,11 @@ _NL   : NEWLINE
 %import common.NEWLINE
 '''
 
-PartNum = int
-Symbol = str
-
-type SchematicItem = PartNum | Symbol
+type SchematicItem = int | str
 type SchematicRow = list[Optional[SchematicItem]]
-type EngineSchematic = list[SchematicRow]
 
 
-class SymbolCoords(NamedTuple):
-    symbol: Symbol
-    row: int
-    col: int
-
-
-class TreeToEngineGrid(Transformer):
+class TreeToSchematic(Transformer):
     start = list
 
     @staticmethod
@@ -40,57 +30,89 @@ class TreeToEngineGrid(Transformer):
         return [val for cells in row for val in cells]
 
     @staticmethod
-    def num(num: list[Token]) -> list[PartNum]:
-        return [int(num[0].value) for _ in num[0].value]
+    def number(number: list[Token]) -> list[int]:
+        return [int(number[0].value) for _ in number[0].value]
 
     @staticmethod
-    def symbol(symbol: list[Token]) -> list[Symbol]:
-        return [symbol[0].value]
+    def part_symbol(part_symbol: list[Token]) -> list[str]:
+        return [part_symbol[0].value]
 
     @staticmethod
     def empty(_) -> list[None]:
         return [None]
 
 
-def parse_grid(filename: str) -> EngineSchematic:
-    with open(filename) as f:
-        parsed_tree = Lark(engine_grid_grammar, parser='lalr').parse(f.read())
-        return TreeToEngineGrid().transform(parsed_tree)
+class Part:
+    def __init__(self, schematic: 'EngineSchematic', *, symbol: str, row: int, col: int) -> None:
+        self._schematic = schematic
+        self._numbers = None
+        self.symbol = symbol
+        self.row = row
+        self.col = col
+
+    @property
+    def is_gear(self) -> bool:
+        return self.symbol == '*' and len(self.numbers) == 2
+
+    @property
+    def numbers(self) -> list[int]:
+        if self._numbers is None:
+            self._numbers = self._schematic.get_part_numbers(self.row, self.col)
+
+        return self._numbers
 
 
-def get_symbol_coords(grid: EngineSchematic) -> set[SymbolCoords]:
-    return {
-        SymbolCoords(val, row_i, col_i)
-        for row_i, row in enumerate(grid)
-        for col_i, val in enumerate(row)
-        if isinstance(val, Symbol)
-    }
+class EngineSchematic(list[SchematicRow]):
+    def __init__(self, rows: list[SchematicRow]):
+        super().__init__(rows)
+        self._parts = None
+
+    @property
+    def parts(self) -> list[Part]:
+        if self._parts is None:
+            self._parts = [
+                Part(self, symbol=val, row=row_i, col=col_i)
+                for row_i, row in enumerate(self)
+                for col_i, val in enumerate(row)
+                if isinstance(val, str)
+            ]
+        return self._parts
+
+    def get_part_numbers(self, row: int, col: int) -> list[int]:
+        numbers = []
+
+        for _row in range(row - 1, row + 2):
+            if not 0 <= _row < len(self):
+                continue
+
+            found_col = None
+            for _col in range(col - 1, col + 2):
+                if 0 <= _col < len(self[_row]) and isinstance(part_num := self[_row][_col], int):
+                    if found_col and found_col + 1 == _col:
+                        found_col = _col
+                        continue
+
+                    numbers.append(part_num)
+                    found_col = _col
+
+        return numbers
+
+    @classmethod
+    def from_file(cls, filename: str) -> 'EngineSchematic':
+        with open(filename) as f:
+            parsed_tree = Lark(engine_grid_grammar, parser='lalr').parse(f.read())
+            return cls(TreeToSchematic().transform(parsed_tree))
 
 
-def get_part_nums(grid: EngineSchematic, *, at_symbol: SymbolCoords) -> set[PartNum]:
-    part_nums = set()
-
-    for row in range(at_symbol.row - 1, at_symbol.row + 2):
-        if not 0 <= row < len(grid):
-            continue
-
-        for col in range(at_symbol.col - 1, at_symbol.col + 2):
-            if 0 <= col < len(grid[row]) and isinstance(part_num := grid[row][col], PartNum):
-                part_nums.add(part_num)
-
-    return part_nums
+def sum_all_part_numbers(schematic: EngineSchematic) -> int:
+    return sum(number for part in schematic.parts for number in part.numbers)
 
 
-def sum_part_numbers(filename: str) -> int:
-    grid = parse_grid(filename)
-    symbol_coords = get_symbol_coords(grid)
-    part_numbers = [
-        part_num
-        for coords in symbol_coords
-        for part_num in get_part_nums(grid, at_symbol=coords)
-    ]
-    return sum(part_numbers)
+def sum_all_gear_ratios(schematic: EngineSchematic) -> int:
+    return sum(part.numbers[0] * part.numbers[1] for part in schematic.parts if part.is_gear)
 
 
 def run(filename: str) -> None:
-    print('Sum of Part Numbers:', sum_part_numbers(filename))
+    schematic = EngineSchematic.from_file(filename)
+    print('Sum of Part Numbers:', sum_all_part_numbers(schematic))
+    print('Sum of Gear Ratios:', sum_all_gear_ratios(schematic))

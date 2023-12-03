@@ -1,39 +1,50 @@
 import pytest
 
-from advent_of_code.year2023.day3 import sum_part_numbers, get_symbol_coords, get_part_nums, parse_grid, SymbolCoords
+from advent_of_code.year2023.day3 import sum_all_part_numbers, EngineSchematic, sum_all_gear_ratios
 
 
-def test_get_symbol_coords(tc_2023_day3):
-    grid = parse_grid(tc_2023_day3)
-    coords = get_symbol_coords(grid)
+def test_get_symbol_coords(tc_2023_day3_a):
+    schematic = EngineSchematic.from_file(tc_2023_day3_a)
+    parts = [(part.symbol, part.row, part.col) for part in schematic.parts]
 
-    assert coords == {
-        SymbolCoords('*', 1, 3),
-        SymbolCoords('#', 3, 6),
-        SymbolCoords('*', 4, 3),
-        SymbolCoords('+', 5, 5),
-        SymbolCoords('$', 8, 3),
-        SymbolCoords('*', 8, 5)
-    }
+    assert parts == [
+        ('*', 1, 3),
+        ('#', 3, 6),
+        ('*', 4, 3),
+        ('+', 5, 5),
+        ('$', 8, 3),
+        ('*', 8, 5)
+    ]
 
 
-@pytest.mark.parametrize('coords, expected', [
-    (SymbolCoords('*', 1, 3), {467, 35}),
-    (SymbolCoords('#', 3, 6), {633, 42}),
-    (SymbolCoords('*', 4, 3), {617, 42}),
-    (SymbolCoords('+', 5, 5), {592, 42}),
-    (SymbolCoords('$', 8, 3), {664}),
-    (SymbolCoords('*', 8, 5), {598, 755}),
+@pytest.mark.parametrize('row,col,expected', [
+    (1, 3, [467, 467]),
+    (3, 6, [42, 633]),
+    (4, 3, [42, 617]),
+    (5, 5, [42, 592]),
+    (8, 3, [664]),
+    (8, 5, [598, 755]),
 ])
-def test_get_part_nums(tc_2023_day3, coords: SymbolCoords, expected: set[int]):
-    grid = parse_grid(tc_2023_day3)
+def test_get_part_nums(tc_2023_day3_a, row: int, col: int, expected: set[int]):
+    schematic = EngineSchematic.from_file(tc_2023_day3_a)
 
-    part_nums = get_part_nums(grid, at_symbol=coords)
+    part_nums = sorted(schematic.get_part_numbers(row, col))
 
     assert part_nums == expected
 
 
-def test_sum_part_numbers(tc_2023_day3):
-    result = sum_part_numbers(tc_2023_day3)
+def test_sum_part_numbers(tc_2023_day3_a):
+    schematic = EngineSchematic.from_file(tc_2023_day3_a)
 
-    assert result == 4487
+    result = sum_all_part_numbers(schematic)
+
+    assert result == 4919
+
+
+def test_sum_all_gear_ratios(tc_2023_day3_b):
+    schematic = EngineSchematic.from_file(tc_2023_day3_b)
+
+    result = sum_all_gear_ratios(schematic)
+
+    assert result == 467835
+
