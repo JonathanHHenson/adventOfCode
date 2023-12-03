@@ -4,9 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = 'advent-of-code'
-version = '2023.1.0'
+version = '2023.2.0'
 readme = 'docs/README.md'
-dependencies = []
+dependencies = [
+    'lark'
+]
 
 [project.optional-dependencies]
 cli = [
